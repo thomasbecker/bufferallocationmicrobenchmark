@@ -66,6 +66,7 @@ public class BufferBenchmarkTest
     private long codeCacheUsed = 0;
     private long permGenSpaceUsed = 0;
     private long totalMemUsed = 0;
+    private static final int CAPACITY = 8096;
 
     /* ------------------------------------------------------------ */
     /**
@@ -144,7 +145,7 @@ public class BufferBenchmarkTest
 
     private void resetThreadPoolExecutor()
     {
-        threadPool = new ThreadPoolExecutorWithExceptionLogging(THREADS,THREADS,1,TimeUnit.MINUTES,new LinkedBlockingQueue<Runnable>(),
+        threadPool = new ThreadPoolExecutorWithExceptionLogging(THREADS,THREADS,1,TimeUnit.MINUTES,new LinkedBlockingQueue<Runnable>(THREADS*2),
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -159,38 +160,16 @@ public class BufferBenchmarkTest
      **/
     private class ThreadPoolExecutorWithExceptionLogging extends ThreadPoolExecutor
     {
-        // Semaphore semaphore = new Semaphore(1024);
-
         public ThreadPoolExecutorWithExceptionLogging(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
                 BlockingQueue<Runnable> workQueue, RejectedExecutionHandler callerRunsPolicy)
         {
             super(corePoolSize,maximumPoolSize,keepAliveTime,unit,workQueue,callerRunsPolicy);
         }
 
-        // @Override
-        // public void execute(Runnable command)
-        // {
-        // try
-        // {
-        // semaphore.acquire();
-        // super.execute(command);
-        // }
-        // catch (InterruptedException e)
-        // {
-        // e.printStackTrace();
-        // semaphore.release();
-        // }
-        // }
-
         @Override
         protected void afterExecute(Runnable r, Throwable t)
         {
-            // if (this.getCompletedTaskCount() % 100000 == 0)
-            // {
-            // System.out.println("act:" + this.getActiveCount() + " largest:" + this.getLargestPoolSize() + " compl:" + this.getCompletedTaskCount());
-            // }
             super.afterExecute(r,t);
-            // semaphore.release();
             if (t == null && r instanceof Future<?>)
             {
                 try
@@ -235,8 +214,7 @@ public class BufferBenchmarkTest
         {
             resetMonitoring();
             boolean direct = false;
-            int capacity = 8096;
-            executeAllocateBufferIterations(direct,capacity,multiThreaded);
+            executeAllocateBufferIterations(direct,CAPACITY,multiThreaded);
             logMonitoringResults();
         }
     }
@@ -269,8 +247,7 @@ public class BufferBenchmarkTest
         {
             resetMonitoring();
             boolean direct = true;
-            int capacity = 8096;
-            executeAllocateBufferIterations(direct,capacity,multiThreaded);
+            executeAllocateBufferIterations(direct,CAPACITY,multiThreaded);
             logMonitoringResults();
         }
     }
@@ -292,9 +269,8 @@ public class BufferBenchmarkTest
         for (int i = 0; i <= ITERATIONS; i++)
         {
             resetMonitoring();
-            int capacity = 8096;
-            PooledBuffers bufferPool = new PooledBuffers(Buffers.Type.INDIRECT,capacity,Buffers.Type.INDIRECT,capacity,Buffers.Type.INDIRECT,capacity);
-            executePooledBufferIterations(capacity,bufferPool,multiThreaded);
+            PooledBuffers bufferPool = new PooledBuffers(Buffers.Type.INDIRECT,CAPACITY,Buffers.Type.INDIRECT,CAPACITY,Buffers.Type.INDIRECT,CAPACITY);
+            executePooledBufferIterations(CAPACITY,bufferPool,multiThreaded);
             logMonitoringResults();
         }
     }
@@ -316,9 +292,8 @@ public class BufferBenchmarkTest
         for (int i = 0; i <= ITERATIONS; i++)
         {
             resetMonitoring();
-            int capacity = 8096;
-            PooledBuffers bufferPool = new PooledBuffers(Buffers.Type.DIRECT,capacity,Buffers.Type.DIRECT,capacity,Buffers.Type.DIRECT,capacity);
-            executePooledBufferIterations(capacity,bufferPool,multiThreaded);
+            PooledBuffers bufferPool = new PooledBuffers(Buffers.Type.DIRECT,CAPACITY,Buffers.Type.DIRECT,CAPACITY,Buffers.Type.DIRECT,CAPACITY);
+            executePooledBufferIterations(CAPACITY,bufferPool,multiThreaded);
             logMonitoringResults();
         }
     }
@@ -496,9 +471,9 @@ public class BufferBenchmarkTest
         float edenKB = byteToKiloByte(edenUsed);
         float oldGenKB = byteToKiloByte(oldGenUsed);
         float totalMemUsedKB = byteToKiloByte(totalMemUsed);
-        float survivorUsedKB = byteToKiloByte(survivorUsed);
-        float codeCacheUsedKB = byteToKiloByte(codeCacheUsed);
-        float permGenUsedKB = byteToKiloByte(permGenSpaceUsed);
+//        float survivorUsedKB = byteToKiloByte(survivorUsed);
+//        float codeCacheUsedKB = byteToKiloByte(codeCacheUsed);
+//        float permGenUsedKB = byteToKiloByte(permGenSpaceUsed);
         System.out.printf(getCurrentMethodName() + ": %1$5dms allocationsPerSecond: %2$15.2f",timeTaken,allocationsPerSecond);
         System.out.printf(" youngCollectionTime: %1$5dms oldCollectionTime: %2$5dms",timeSpentInYoungCollection,timeSpentInOldCollection);
         System.out.printf(" timeGC: " + overallTimeSpendInGc + "ms");
